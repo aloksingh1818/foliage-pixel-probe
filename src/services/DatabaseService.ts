@@ -28,11 +28,11 @@ export class DatabaseService {
     }
 
     try {
-      // The checkConnectionsConsistency method requires a string argument
+      // Fix 1: Add required argument to checkConnectionsConsistency
       await this.sqlite.checkConnectionsConsistency("transaction");
       
-      // The createConnection method should not have the 5th argument based on the error
-      this.db = await this.sqlite.createConnection('leaf_measurements', false, 'no-encryption', 1);
+      // Fix 3: Provide all 5 required arguments to createConnection
+      this.db = await this.sqlite.createConnection('leaf_measurements', false, 'no-encryption', 1, false);
       
       if (this.db) {
         await this.db.open();
@@ -130,7 +130,7 @@ export class DatabaseService {
 
   async closeConnection(): Promise<void> {
     if (this.db) {
-      // This method requires a second boolean argument
+      // Fix 2: Provide both required arguments for closeConnection
       await this.sqlite.closeConnection('leaf_measurements', false);
       this.db = null;
       this.initialized = false;
