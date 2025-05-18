@@ -4,17 +4,18 @@ frontend:
     preBuild:
       commands:
         - nvm use 18
+        - cd foliage-pixel-probe-main
         - npm ci --legacy-peer-deps
     build:
       commands:
         - npm run build
   artifacts:
-    baseDirectory: dist
+    baseDirectory: foliage-pixel-probe-main/dist
     files:
       - '**/*'
   cache:
     paths:
-      - node_modules/**/*
+      - foliage-pixel-probe-main/node_modules/**/*
   customHeaders:
     - pattern: '**/*'
       headers:
