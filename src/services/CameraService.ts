@@ -17,9 +17,9 @@ export class CameraService {
         source: CameraSource.Camera
       });
       
-      if (photo && photo.path && photo.webPath) {
+      if (photo && photo.webPath) {
         return {
-          path: photo.path,
+          path: photo.path || '',
           webPath: photo.webPath,
           format: photo.format || 'jpeg'
         };
@@ -40,9 +40,9 @@ export class CameraService {
         source: CameraSource.Photos
       });
       
-      if (photo && photo.path && photo.webPath) {
+      if (photo && photo.webPath) {
         return {
-          path: photo.path,
+          path: photo.path || '',
           webPath: photo.webPath,
           format: photo.format || 'jpeg'
         };

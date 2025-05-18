@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Camera, Image, Info, X, Check } from 'lucide-react';
+import { Camera, Image, Info, X, Check, Loader } from 'lucide-react';
 import { toast } from 'sonner';
 import { cameraService } from '@/services/CameraService';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -13,18 +13,23 @@ const Home = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isImageDialogOpen, setIsImageDialogOpen] = useState<boolean>(false);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [analysisProgress, setAnalysisProgress] = useState<number>(0);
   const [analysisResult, setAnalysisResult] = useState<{leafArea: number} | null>(null);
 
   const handleCaptureImage = async () => {
     try {
+      setIsLoading(true);
       const imageData = await cameraService.captureImage();
+      setIsLoading(false);
+      
       if (imageData) {
         setSelectedImage(imageData.webPath);
         toast.success("Image captured successfully!");
         setIsImageDialogOpen(true);
       }
     } catch (error) {
+      setIsLoading(false);
       toast.error("Failed to capture image. Please try again.");
       console.error("Camera error:", error);
     }
@@ -32,13 +37,17 @@ const Home = () => {
 
   const handleSelectImage = async () => {
     try {
+      setIsLoading(true);
       const imageData = await cameraService.selectImage();
+      setIsLoading(false);
+      
       if (imageData) {
         setSelectedImage(imageData.webPath);
         toast.success("Image selected successfully!");
         setIsImageDialogOpen(true);
       }
     } catch (error) {
+      setIsLoading(false);
       toast.error("Failed to select image. Please try again.");
       console.error("Gallery error:", error);
     }
@@ -114,6 +123,7 @@ const Home = () => {
               size="sm" 
               className="text-green-700 border-green-300"
               onClick={resetAnalysis}
+              disabled={isAnalyzing}
             >
               <X className="mr-1 h-4 w-4" />
               Remove
@@ -124,7 +134,12 @@ const Home = () => {
               onClick={handleAnalyzeLeaf}
               disabled={isAnalyzing}
             >
-              {isAnalyzing ? "Analyzing..." : "Analyze Leaf"}
+              {isAnalyzing ? (
+                <>
+                  <Loader className="mr-1 h-4 w-4 animate-spin" />
+                  Analyzing...
+                </>
+              ) : "Analyze Leaf"}
             </Button>
           </CardFooter>
         </Card>
@@ -143,17 +158,27 @@ const Home = () => {
             <Button 
               className="w-full bg-green-600 hover:bg-green-700 text-lg py-6 rounded-lg shadow-md flex items-center justify-center gap-3"
               onClick={handleCaptureImage}
+              disabled={isLoading}
             >
-              <Camera size={24} />
-              Capture New Image
+              {isLoading ? (
+                <Loader className="h-5 w-5 animate-spin" />
+              ) : (
+                <Camera size={24} />
+              )}
+              {isLoading ? "Opening Camera..." : "Capture New Image"}
             </Button>
             
             <Button 
               className="w-full bg-green-600 hover:bg-green-700 text-lg py-6 rounded-lg shadow-md flex items-center justify-center gap-3"
               onClick={handleSelectImage}
+              disabled={isLoading}
             >
-              <Image size={24} />
-              Select from Gallery
+              {isLoading ? (
+                <Loader className="h-5 w-5 animate-spin" />
+              ) : (
+                <Image size={24} />
+              )}
+              {isLoading ? "Opening Gallery..." : "Select from Gallery"}
             </Button>
             
             <Button 
@@ -203,6 +228,11 @@ const Home = () => {
                 alt="Selected Leaf" 
                 className="rounded-md object-cover w-full h-full"
               />
+              {analysisResult && (
+                <div className="absolute bottom-0 left-0 right-0 bg-green-700 bg-opacity-80 text-white p-2 text-sm">
+                  Leaf Area: {analysisResult.leafArea} cm²
+                </div>
+              )}
             </div>
           )}
           
@@ -236,6 +266,7 @@ const Home = () => {
               type="button"
               variant="outline"
               onClick={() => setIsImageDialogOpen(false)}
+              disabled={isAnalyzing}
             >
               {analysisResult ? "Close" : "Cancel"}
             </Button>
