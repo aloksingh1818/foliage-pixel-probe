@@ -4,19 +4,19 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useEffect } from "react";
+import React from "react";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 
 // Initialize the Query Client
 const queryClient = new QueryClient();
 
-const App = () => {
+const App: React.FC = () => {
   // Initialize PWA elements if on a mobile device
-  useEffect(() => {
+  React.useEffect(() => {
     const initializePWA = async () => {
       try {
-        if (window.Capacitor) {
+        if (window && window.hasOwnProperty('Capacitor')) {
           // Define the elements for camera functionality if needed
           console.log("Capacitor detected - running as a mobile app");
         }

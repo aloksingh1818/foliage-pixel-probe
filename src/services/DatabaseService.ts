@@ -1,139 +1,187 @@
 
-import { Capacitor } from '@capacitor/core';
-import { SQLiteConnection, SQLiteDBConnection, capSQLiteSet } from '@capacitor-community/sqlite';
+import { CapacitorSQLite, SQLiteConnection, SQLiteDBConnection } from '@capacitor-community/sqlite';
 
-export interface LeafMeasurement {
-  id?: number;
-  imageUri: string;
-  leafArea: number;
-  calibrationArea: number;
-  greenPixelCount: number;
-  redPixelCount: number;
-  timestamp: number;
-  notes?: string;
-}
-
-export class DatabaseService {
+class DatabaseService {
   private sqlite: SQLiteConnection;
-  private db: SQLiteDBConnection | null = null;
+  private db!: SQLiteDBConnection;
   private initialized = false;
 
   constructor() {
-    this.sqlite = new SQLiteConnection();
+    this.sqlite = new SQLiteConnection(CapacitorSQLite);
   }
 
   async initialize(): Promise<void> {
-    if (this.initialized) {
-      return;
-    }
+    if (this.initialized) return;
 
     try {
-      // Fix 1: Add required argument to checkConnectionsConsistency
-      await this.sqlite.checkConnectionsConsistency("transaction");
-      
-      // Fix 2: Provide all 5 required arguments to createConnection
-      this.db = await this.sqlite.createConnection('leaf_measurements', false, 'no-encryption', 1, false);
-      
-      if (this.db) {
-        await this.db.open();
-        
-        // Create tables if they don't exist
-        const query = `
-          CREATE TABLE IF NOT EXISTS leaf_measurements (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            imageUri TEXT NOT NULL,
-            leafArea REAL NOT NULL,
-            calibrationArea REAL NOT NULL,
-            greenPixelCount INTEGER NOT NULL,
-            redPixelCount INTEGER NOT NULL,
-            timestamp INTEGER NOT NULL,
-            notes TEXT
-          );
-        `;
-        
-        await this.db.execute(query);
-        this.initialized = true;
+      // Create database connection
+      const ret = await this.sqlite.checkConnectionsConsistency();
+      const isConn = await this.sqlite.isConnection("foliage_db");
+
+      if (ret.result && isConn.result) {
+        this.db = await this.sqlite.retrieveConnection("foliage_db", false);
+      } else {
+        this.db = await this.sqlite.createConnection(
+          "foliage_db",
+          false,
+          "no-encryption",
+          1,
+          false
+        );
       }
+
+      await this.db.open();
+
+      // Create tables if they don't exist
+      const createTableQuery = `
+        CREATE TABLE IF NOT EXISTS leaf_measurements (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          image_path TEXT,
+          leaf_area REAL,
+          timestamp TEXT,
+          notes TEXT
+        );
+      `;
+
+      await this.db.execute(createTableQuery);
+      this.initialized = true;
+      console.log("Database initialized successfully");
     } catch (error) {
-      console.error('Database initialization error:', error);
+      console.error("Error initializing database:", error);
       throw error;
     }
   }
 
-  async saveMeasurement(measurement: LeafMeasurement): Promise<number> {
-    await this.initialize();
-    
-    if (!this.db) {
-      throw new Error('Database not initialized');
+  async saveLeafMeasurement(
+    imagePath: string,
+    leafArea: number,
+    notes: string = ""
+  ): Promise<number> {
+    if (!this.initialized) {
+      await this.initialize();
     }
 
-    const statement = `
-      INSERT INTO leaf_measurements 
-      (imageUri, leafArea, calibrationArea, greenPixelCount, redPixelCount, timestamp, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `;
-    
-    const values = [
-      measurement.imageUri,
-      measurement.leafArea,
-      measurement.calibrationArea,
-      measurement.greenPixelCount,
-      measurement.redPixelCount,
-      measurement.timestamp,
-      measurement.notes || null
-    ];
+    try {
+      const timestamp = new Date().toISOString();
+      const query = `
+        INSERT INTO leaf_measurements (image_path, leaf_area, timestamp, notes)
+        VALUES (?, ?, ?, ?);
+      `;
+      const values = [imagePath, leafArea, timestamp, notes];
 
-    const result = await this.db.run(statement, values);
-    return result.changes?.lastId || -1;
+      const result = await this.db.run(query, values);
+      return result.changes?.lastId || 0;
+    } catch (error) {
+      console.error("Error saving leaf measurement:", error);
+      throw error;
+    }
   }
 
-  async getMeasurements(): Promise<LeafMeasurement[]> {
-    await this.initialize();
-    
-    if (!this.db) {
-      throw new Error('Database not initialized');
+  async getLeafMeasurements(): Promise<any[]> {
+    if (!this.initialized) {
+      await this.initialize();
     }
 
-    const query = 'SELECT * FROM leaf_measurements ORDER BY timestamp DESC';
-    const result = await this.db.query(query);
-    
-    return result.values || [];
+    try {
+      const query = `
+        SELECT * FROM leaf_measurements 
+        ORDER BY timestamp DESC;
+      `;
+      const result = await this.db.query(query);
+      return result.values || [];
+    } catch (error) {
+      console.error("Error fetching leaf measurements:", error);
+      return [];
+    }
   }
 
-  async getMeasurementById(id: number): Promise<LeafMeasurement | null> {
-    await this.initialize();
-    
-    if (!this.db) {
-      throw new Error('Database not initialized');
+  async getLeafMeasurementById(id: number): Promise<any | null> {
+    if (!this.initialized) {
+      await this.initialize();
     }
 
-    const query = 'SELECT * FROM leaf_measurements WHERE id = ?';
-    const result = await this.db.query(query, [id]);
-    
-    if (result.values && result.values.length > 0) {
-      return result.values[0] as LeafMeasurement;
+    try {
+      const query = `
+        SELECT * FROM leaf_measurements 
+        WHERE id = ?;
+      `;
+      const result = await this.db.query(query, [id]);
+      return result.values && result.values.length > 0
+        ? result.values[0]
+        : null;
+    } catch (error) {
+      console.error(`Error fetching leaf measurement with ID ${id}:`, error);
+      return null;
     }
-    
-    return null;
   }
 
-  async deleteMeasurement(id: number): Promise<void> {
-    await this.initialize();
-    
-    if (!this.db) {
-      throw new Error('Database not initialized');
+  async updateLeafMeasurement(
+    id: number,
+    updates: {
+      leafArea?: number;
+      notes?: string;
+    }
+  ): Promise<boolean> {
+    if (!this.initialized) {
+      await this.initialize();
     }
 
-    const query = 'DELETE FROM leaf_measurements WHERE id = ?';
-    await this.db.run(query, [id]);
+    try {
+      let setStatements = [];
+      let values = [];
+
+      if (updates.leafArea !== undefined) {
+        setStatements.push("leaf_area = ?");
+        values.push(updates.leafArea);
+      }
+
+      if (updates.notes !== undefined) {
+        setStatements.push("notes = ?");
+        values.push(updates.notes);
+      }
+
+      if (setStatements.length === 0) {
+        return false;
+      }
+
+      // Add the ID to the values array
+      values.push(id);
+
+      const query = `
+        UPDATE leaf_measurements 
+        SET ${setStatements.join(", ")} 
+        WHERE id = ?;
+      `;
+
+      const result = await this.db.run(query, values);
+      return result.changes?.changes > 0;
+    } catch (error) {
+      console.error(`Error updating leaf measurement with ID ${id}:`, error);
+      return false;
+    }
   }
 
-  async closeConnection(): Promise<void> {
-    if (this.db) {
-      // Fix 3: Provide the correct arguments for closeConnection
-      await this.sqlite.closeConnection('leaf_measurements');
-      this.db = null;
+  async deleteLeafMeasurement(id: number): Promise<boolean> {
+    if (!this.initialized) {
+      await this.initialize();
+    }
+
+    try {
+      const query = `DELETE FROM leaf_measurements WHERE id = ?;`;
+      const result = await this.db.run(query, [id]);
+      return result.changes?.changes > 0;
+    } catch (error) {
+      console.error(`Error deleting leaf measurement with ID ${id}:`, error);
+      return false;
+    }
+  }
+
+  async close(): Promise<void> {
+    try {
+      await this.db.close();
       this.initialized = false;
+    } catch (error) {
+      console.error("Error closing database:", error);
     }
   }
 }
