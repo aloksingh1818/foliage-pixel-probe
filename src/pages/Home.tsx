@@ -6,9 +6,13 @@ import { Camera, Image, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { cameraService } from '@/services/CameraService';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 const Home = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isImageDialogOpen, setIsImageDialogOpen] = useState<boolean>(false);
+  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  const [analysisResult, setAnalysisResult] = useState<{leafArea: number} | null>(null);
 
   const handleCaptureImage = async () => {
     try {
@@ -16,6 +20,7 @@ const Home = () => {
       if (imageData) {
         setSelectedImage(imageData.webPath);
         toast.success("Image captured successfully!");
+        setIsImageDialogOpen(true);
       }
     } catch (error) {
       toast.error("Failed to capture image. Please try again.");
@@ -29,11 +34,29 @@ const Home = () => {
       if (imageData) {
         setSelectedImage(imageData.webPath);
         toast.success("Image selected successfully!");
+        setIsImageDialogOpen(true);
       }
     } catch (error) {
       toast.error("Failed to select image. Please try again.");
       console.error("Gallery error:", error);
     }
+  };
+
+  const handleAnalyzeLeaf = () => {
+    setIsAnalyzing(true);
+    
+    // Simulate analysis process
+    setTimeout(() => {
+      setIsAnalyzing(false);
+      
+      // Mock analysis result
+      const mockLeafArea = Math.floor(Math.random() * 500) + 100;
+      setAnalysisResult({
+        leafArea: mockLeafArea
+      });
+      
+      toast.success("Leaf analysis completed!");
+    }, 2000);
   };
 
   return (
@@ -68,8 +91,10 @@ const Home = () => {
             <Button 
               className="bg-green-700 hover:bg-green-800" 
               size="sm"
+              onClick={handleAnalyzeLeaf}
+              disabled={isAnalyzing}
             >
-              Analyze Leaf
+              {isAnalyzing ? "Analyzing..." : "Analyze Leaf"}
             </Button>
           </CardFooter>
         </Card>
@@ -104,9 +129,11 @@ const Home = () => {
             <Button 
               className="w-full bg-white text-green-700 border-2 border-green-500 hover:bg-green-50 shadow-sm text-lg py-6 rounded-lg flex items-center justify-center gap-3" 
               variant="outline"
+              disabled={!analysisResult}
+              onClick={() => setAnalysisResult && setIsImageDialogOpen(true)}
             >
               <Info size={24} />
-              View Results
+              {analysisResult ? "View Results" : "No Results Yet"}
             </Button>
           </div>
         </CardContent>
@@ -128,9 +155,61 @@ const Home = () => {
 
       <Alert className="mt-8 bg-green-50 border border-green-200">
         <AlertDescription className="text-center text-sm text-green-800">
-          Developed by Alok, Shafique, and Arif &copy; 2025
+          Developed by Alok, Sharique, and Arif &copy; 2025
         </AlertDescription>
       </Alert>
+
+      {/* Image Analysis Results Dialog */}
+      <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{analysisResult ? "Leaf Analysis Results" : "Image Confirmation"}</DialogTitle>
+          </DialogHeader>
+          
+          {selectedImage && (
+            <div className="aspect-w-16 aspect-h-9 relative w-full h-48 mb-4">
+              <img 
+                src={selectedImage} 
+                alt="Selected Leaf" 
+                className="rounded-md object-cover w-full h-full"
+              />
+            </div>
+          )}
+          
+          {analysisResult ? (
+            <div className="p-4 bg-green-50 rounded-md mb-4">
+              <h3 className="font-bold text-green-800 mb-2">Analysis Results:</h3>
+              <p className="mb-2"><span className="font-semibold">Leaf Area:</span> {analysisResult.leafArea} cm²</p>
+              <p className="text-sm text-gray-600">Analysis completed successfully.</p>
+            </div>
+          ) : (
+            <p className="text-gray-700 mb-4">
+              Is this image suitable for leaf analysis? The image should clearly show the entire leaf and calibration object.
+            </p>
+          )}
+          
+          <DialogFooter className="sm:justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsImageDialogOpen(false)}
+            >
+              {analysisResult ? "Close" : "Cancel"}
+            </Button>
+            
+            {!analysisResult && (
+              <Button
+                type="button"
+                className="bg-green-700 hover:bg-green-800"
+                onClick={handleAnalyzeLeaf}
+                disabled={isAnalyzing}
+              >
+                {isAnalyzing ? "Analyzing..." : "Proceed with Analysis"}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

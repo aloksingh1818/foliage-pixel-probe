@@ -130,8 +130,8 @@ export class DatabaseService {
 
   async closeConnection(): Promise<void> {
     if (this.db) {
-      // Fix 3: Provide both required arguments for closeConnection
-      await this.sqlite.closeConnection('leaf_measurements', false);
+      // Fix 3: Provide the correct arguments for closeConnection
+      await this.sqlite.closeConnection('leaf_measurements');
       this.db = null;
       this.initialized = false;
     }
