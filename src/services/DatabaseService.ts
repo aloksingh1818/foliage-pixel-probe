@@ -31,8 +31,8 @@ export class DatabaseService {
       // Fix 1: Add required argument to checkConnectionsConsistency
       await this.sqlite.checkConnectionsConsistency("transaction");
       
-      // Fix 2: Remove the last argument (1) from createConnection since it doesn't expect it
-      this.db = await this.sqlite.createConnection('leaf_measurements', false, 'no-encryption');
+      // Fix 2: Provide all 5 required arguments to createConnection
+      this.db = await this.sqlite.createConnection('leaf_measurements', false, 'no-encryption', 1, false);
       
       if (this.db) {
         await this.db.open();
@@ -130,8 +130,8 @@ export class DatabaseService {
 
   async closeConnection(): Promise<void> {
     if (this.db) {
-      // Fix 2: Provide both required arguments for closeConnection
-      await this.sqlite.closeConnection('leaf_measurements', false);
+      // Fix 3: Remove extra argument from closeConnection
+      await this.sqlite.closeConnection('leaf_measurements');
       this.db = null;
       this.initialized = false;
     }
