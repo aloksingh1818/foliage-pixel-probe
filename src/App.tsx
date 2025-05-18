@@ -12,11 +12,11 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App: React.FC = () => {
-  // Initialize PWA elements if on a mobile device
+  // Create a separate function for PWA initialization to avoid issues with hooks
   React.useEffect(() => {
     const initializePWA = async () => {
       try {
-        if (window && window.hasOwnProperty('Capacitor')) {
+        if (typeof window !== 'undefined' && window.hasOwnProperty('Capacitor')) {
           // Define the elements for camera functionality if needed
           console.log("Capacitor detected - running as a mobile app");
         }
