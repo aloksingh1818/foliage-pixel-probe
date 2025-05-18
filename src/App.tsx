@@ -1,43 +1,40 @@
-
-import React from "react";
+import React, { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
+import Developers from "@/pages/Developers";
 
 // Initialize the Query Client
 const queryClient = new QueryClient();
 
 const App: React.FC = () => {
-  React.useEffect(() => {
-    const initializePWA = async () => {
-      try {
-        if (typeof window !== 'undefined' && 'Capacitor' in window) {
-          console.log("Capacitor detected - running as a mobile app");
-        }
-      } catch (error) {
-        console.error("Error initializing PWA elements:", error);
-      }
-    };
+  useEffect(() => {
+    // Initialize PWA elements
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
 
-    initializePWA();
+    // Check if running in Capacitor
+    if (window.Capacitor) {
+      console.log('Running in Capacitor');
+    }
   }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner position="top-center" closeButton />
-        <BrowserRouter>
+        <Router>
           <Routes>
             <Route path="/" element={<Home />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/developers" element={<Developers />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
+        </Router>
+        <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
   );
