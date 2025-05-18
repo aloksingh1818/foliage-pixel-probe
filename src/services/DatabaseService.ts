@@ -28,7 +28,8 @@ export class DatabaseService {
     }
 
     try {
-      await this.sqlite.checkConnectionsConsistency();
+      // This method requires a string argument for platform
+      await this.sqlite.checkConnectionsConsistency("transaction");
       this.db = await this.sqlite.createConnection('leaf_measurements', false, 'no-encryption', 1, false);
       
       if (this.db) {
@@ -127,7 +128,8 @@ export class DatabaseService {
 
   async closeConnection(): Promise<void> {
     if (this.db) {
-      await this.sqlite.closeConnection('leaf_measurements');
+      // This method requires a second boolean argument
+      await this.sqlite.closeConnection('leaf_measurements', false);
       this.db = null;
       this.initialized = false;
     }
