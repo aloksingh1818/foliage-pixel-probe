@@ -2,16 +2,18 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Camera, Image, Info } from 'lucide-react';
+import { Camera, Image, Info, X, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { cameraService } from '@/services/CameraService';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
 
 const Home = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isImageDialogOpen, setIsImageDialogOpen] = useState<boolean>(false);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  const [analysisProgress, setAnalysisProgress] = useState<number>(0);
   const [analysisResult, setAnalysisResult] = useState<{leafArea: number} | null>(null);
 
   const handleCaptureImage = async () => {
@@ -44,19 +46,40 @@ const Home = () => {
 
   const handleAnalyzeLeaf = () => {
     setIsAnalyzing(true);
+    setAnalysisProgress(0);
     
-    // Simulate analysis process
-    setTimeout(() => {
-      setIsAnalyzing(false);
-      
-      // Mock analysis result
-      const mockLeafArea = Math.floor(Math.random() * 500) + 100;
-      setAnalysisResult({
-        leafArea: mockLeafArea
+    // Clear any previous results
+    setAnalysisResult(null);
+    
+    // Simulate analysis process with progress updates
+    const interval = setInterval(() => {
+      setAnalysisProgress(prev => {
+        const newProgress = prev + 10;
+        if (newProgress >= 100) {
+          clearInterval(interval);
+          
+          // Mock analysis result
+          setTimeout(() => {
+            const mockLeafArea = Math.floor(Math.random() * 500) + 100;
+            setAnalysisResult({
+              leafArea: mockLeafArea
+            });
+            setIsAnalyzing(false);
+            
+            toast.success("Leaf analysis completed successfully!");
+          }, 500);
+          
+          return 100;
+        }
+        return newProgress;
       });
-      
-      toast.success("Leaf analysis completed!");
-    }, 2000);
+    }, 200);
+  };
+
+  const resetAnalysis = () => {
+    setSelectedImage(null);
+    setAnalysisResult(null);
+    setIsImageDialogOpen(false);
   };
 
   return (
@@ -78,14 +101,21 @@ const Home = () => {
               alt="Selected Leaf" 
               className="absolute inset-0 w-full h-full object-cover"
             />
+            {analysisResult && (
+              <div className="absolute bottom-0 left-0 right-0 bg-green-700 bg-opacity-80 text-white p-3 flex justify-between items-center">
+                <span className="font-semibold">Leaf Area: {analysisResult.leafArea} cm²</span>
+                <Check className="h-5 w-5" />
+              </div>
+            )}
           </div>
           <CardFooter className="bg-green-100 p-3 flex justify-between">
             <Button 
               variant="outline" 
               size="sm" 
               className="text-green-700 border-green-300"
-              onClick={() => setSelectedImage(null)}
+              onClick={resetAnalysis}
             >
+              <X className="mr-1 h-4 w-4" />
               Remove
             </Button>
             <Button 
@@ -130,7 +160,7 @@ const Home = () => {
               className="w-full bg-white text-green-700 border-2 border-green-500 hover:bg-green-50 shadow-sm text-lg py-6 rounded-lg flex items-center justify-center gap-3" 
               variant="outline"
               disabled={!analysisResult}
-              onClick={() => setAnalysisResult && setIsImageDialogOpen(true)}
+              onClick={() => analysisResult && setIsImageDialogOpen(true)}
             >
               <Info size={24} />
               {analysisResult ? "View Results" : "No Results Yet"}
@@ -176,16 +206,29 @@ const Home = () => {
             </div>
           )}
           
+          {isAnalyzing && (
+            <div className="mb-4">
+              <p className="text-gray-700 mb-2 font-medium">Analyzing leaf area...</p>
+              <Progress value={analysisProgress} className="h-2" />
+              <p className="text-xs text-gray-500 mt-1">{analysisProgress}% complete</p>
+            </div>
+          )}
+          
           {analysisResult ? (
             <div className="p-4 bg-green-50 rounded-md mb-4">
               <h3 className="font-bold text-green-800 mb-2">Analysis Results:</h3>
-              <p className="mb-2"><span className="font-semibold">Leaf Area:</span> {analysisResult.leafArea} cm²</p>
+              <p className="mb-2 flex justify-between">
+                <span className="font-semibold">Leaf Area:</span> 
+                <span className="text-green-700 font-bold">{analysisResult.leafArea} cm²</span>
+              </p>
               <p className="text-sm text-gray-600">Analysis completed successfully.</p>
             </div>
           ) : (
-            <p className="text-gray-700 mb-4">
-              Is this image suitable for leaf analysis? The image should clearly show the entire leaf and calibration object.
-            </p>
+            !isAnalyzing && (
+              <p className="text-gray-700 mb-4">
+                Is this image suitable for leaf analysis? The image should clearly show the entire leaf and calibration object.
+              </p>
+            )
           )}
           
           <DialogFooter className="sm:justify-between">
@@ -197,14 +240,23 @@ const Home = () => {
               {analysisResult ? "Close" : "Cancel"}
             </Button>
             
-            {!analysisResult && (
+            {!analysisResult && !isAnalyzing && (
               <Button
                 type="button"
                 className="bg-green-700 hover:bg-green-800"
                 onClick={handleAnalyzeLeaf}
-                disabled={isAnalyzing}
               >
-                {isAnalyzing ? "Analyzing..." : "Proceed with Analysis"}
+                Proceed with Analysis
+              </Button>
+            )}
+            
+            {analysisResult && (
+              <Button
+                type="button"
+                className="bg-green-700 hover:bg-green-800"
+                onClick={resetAnalysis}
+              >
+                Analyze New Leaf
               </Button>
             )}
           </DialogFooter>
