@@ -1,0 +1,300 @@
+
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Camera, Image, Info, X, Check, Loader } from 'lucide-react';
+import { toast } from 'sonner';
+import { cameraService } from '@/services/CameraService';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
+
+const Home = () => {
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isImageDialogOpen, setIsImageDialogOpen] = useState<boolean>(false);
+  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [analysisProgress, setAnalysisProgress] = useState<number>(0);
+  const [analysisResult, setAnalysisResult] = useState<{leafArea: number} | null>(null);
+
+  const handleCaptureImage = async () => {
+    try {
+      setIsLoading(true);
+      const imageData = await cameraService.captureImage();
+      setIsLoading(false);
+      
+      if (imageData) {
+        setSelectedImage(imageData.webPath);
+        toast.success("Image captured successfully!");
+        setIsImageDialogOpen(true);
+      }
+    } catch (error) {
+      setIsLoading(false);
+      toast.error("Failed to capture image. Please try again.");
+      console.error("Camera error:", error);
+    }
+  };
+
+  const handleSelectImage = async () => {
+    try {
+      setIsLoading(true);
+      const imageData = await cameraService.selectImage();
+      setIsLoading(false);
+      
+      if (imageData) {
+        setSelectedImage(imageData.webPath);
+        toast.success("Image selected successfully!");
+        setIsImageDialogOpen(true);
+      }
+    } catch (error) {
+      setIsLoading(false);
+      toast.error("Failed to select image. Please try again.");
+      console.error("Gallery error:", error);
+    }
+  };
+
+  const handleAnalyzeLeaf = () => {
+    setIsAnalyzing(true);
+    setAnalysisProgress(0);
+    
+    // Clear any previous results
+    setAnalysisResult(null);
+    
+    // Simulate analysis process with progress updates
+    const interval = setInterval(() => {
+      setAnalysisProgress(prev => {
+        const newProgress = prev + 10;
+        if (newProgress >= 100) {
+          clearInterval(interval);
+          
+          // Mock analysis result
+          setTimeout(() => {
+            const mockLeafArea = Math.floor(Math.random() * 500) + 100;
+            setAnalysisResult({
+              leafArea: mockLeafArea
+            });
+            setIsAnalyzing(false);
+            
+            toast.success("Leaf analysis completed successfully!");
+          }, 500);
+          
+          return 100;
+        }
+        return newProgress;
+      });
+    }, 200);
+  };
+
+  const resetAnalysis = () => {
+    setSelectedImage(null);
+    setAnalysisResult(null);
+    setIsImageDialogOpen(false);
+  };
+
+  return (
+    <div className="container mx-auto p-4 max-w-md bg-gradient-to-b from-green-50 to-white min-h-screen">
+      <header className="mb-6">
+        <h1 className="text-3xl font-bold text-center text-green-800 mb-2">
+          Leaf Area Measurement
+        </h1>
+        <p className="text-center text-green-600 text-sm">
+          Precision Agriculture Made Simple
+        </p>
+      </header>
+      
+      {selectedImage && (
+        <Card className="mb-6 overflow-hidden border-2 border-green-200 shadow-lg">
+          <div className="aspect-w-16 aspect-h-9 relative w-full h-56">
+            <img 
+              src={selectedImage} 
+              alt="Selected Leaf" 
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            {analysisResult && (
+              <div className="absolute bottom-0 left-0 right-0 bg-green-700 bg-opacity-80 text-white p-3 flex justify-between items-center">
+                <span className="font-semibold">Leaf Area: {analysisResult.leafArea} cm²</span>
+                <Check className="h-5 w-5" />
+              </div>
+            )}
+          </div>
+          <CardFooter className="bg-green-100 p-3 flex justify-between">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="text-green-700 border-green-300"
+              onClick={resetAnalysis}
+              disabled={isAnalyzing}
+            >
+              <X className="mr-1 h-4 w-4" />
+              Remove
+            </Button>
+            <Button 
+              className="bg-green-700 hover:bg-green-800" 
+              size="sm"
+              onClick={handleAnalyzeLeaf}
+              disabled={isAnalyzing}
+            >
+              {isAnalyzing ? (
+                <>
+                  <Loader className="mr-1 h-4 w-4 animate-spin" />
+                  Analyzing...
+                </>
+              ) : "Analyze Leaf"}
+            </Button>
+          </CardFooter>
+        </Card>
+      )}
+      
+      <Card className="mb-6 bg-white border-2 border-green-200 shadow-lg">
+        <CardHeader className="bg-green-100">
+          <CardTitle className="text-green-700 text-xl font-bold">Capture Leaf Image</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <p className="text-gray-600 mb-5 text-sm">
+            Select a method to analyze a leaf. Make sure to include a red calibration object alongside the leaf.
+          </p>
+          
+          <div className="flex flex-col gap-3">
+            <Button 
+              className="w-full bg-green-600 hover:bg-green-700 text-lg py-6 rounded-lg shadow-md flex items-center justify-center gap-3"
+              onClick={handleCaptureImage}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <Loader className="h-5 w-5 animate-spin" />
+              ) : (
+                <Camera size={24} />
+              )}
+              {isLoading ? "Opening Camera..." : "Capture New Image"}
+            </Button>
+            
+            <Button 
+              className="w-full bg-green-600 hover:bg-green-700 text-lg py-6 rounded-lg shadow-md flex items-center justify-center gap-3"
+              onClick={handleSelectImage}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <Loader className="h-5 w-5 animate-spin" />
+              ) : (
+                <Image size={24} />
+              )}
+              {isLoading ? "Opening Gallery..." : "Select from Gallery"}
+            </Button>
+            
+            <Button 
+              className="w-full bg-white text-green-700 border-2 border-green-500 hover:bg-green-50 shadow-sm text-lg py-6 rounded-lg flex items-center justify-center gap-3" 
+              variant="outline"
+              disabled={!analysisResult}
+              onClick={() => analysisResult && setIsImageDialogOpen(true)}
+            >
+              <Info size={24} />
+              {analysisResult ? "View Results" : "No Results Yet"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+      
+      <Card className="bg-white border-2 border-green-200 shadow-lg">
+        <CardHeader className="bg-green-100">
+          <CardTitle className="text-green-700 text-xl font-bold">How it Works</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-5">
+          <ol className="list-decimal pl-5 space-y-3 text-gray-600">
+            <li>Capture or select an image containing a leaf and a red calibration object</li>
+            <li>The app will detect green (leaf) and red (calibration) pixels</li>
+            <li>Set the known area of your calibration object</li>
+            <li>The leaf area will be calculated and saved to your results</li>
+          </ol>
+        </CardContent>
+      </Card>
+
+      <Alert className="mt-8 bg-green-50 border border-green-200">
+        <AlertDescription className="text-center text-sm text-green-800">
+          Developed by Alok, Sharique, and Arif &copy; 2025
+        </AlertDescription>
+      </Alert>
+
+      {/* Image Analysis Results Dialog */}
+      <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{analysisResult ? "Leaf Analysis Results" : "Image Confirmation"}</DialogTitle>
+          </DialogHeader>
+          
+          {selectedImage && (
+            <div className="aspect-w-16 aspect-h-9 relative w-full h-48 mb-4">
+              <img 
+                src={selectedImage} 
+                alt="Selected Leaf" 
+                className="rounded-md object-cover w-full h-full"
+              />
+              {analysisResult && (
+                <div className="absolute bottom-0 left-0 right-0 bg-green-700 bg-opacity-80 text-white p-2 text-sm">
+                  Leaf Area: {analysisResult.leafArea} cm²
+                </div>
+              )}
+            </div>
+          )}
+          
+          {isAnalyzing && (
+            <div className="mb-4">
+              <p className="text-gray-700 mb-2 font-medium">Analyzing leaf area...</p>
+              <Progress value={analysisProgress} className="h-2" />
+              <p className="text-xs text-gray-500 mt-1">{analysisProgress}% complete</p>
+            </div>
+          )}
+          
+          {analysisResult ? (
+            <div className="p-4 bg-green-50 rounded-md mb-4">
+              <h3 className="font-bold text-green-800 mb-2">Analysis Results:</h3>
+              <p className="mb-2 flex justify-between">
+                <span className="font-semibold">Leaf Area:</span> 
+                <span className="text-green-700 font-bold">{analysisResult.leafArea} cm²</span>
+              </p>
+              <p className="text-sm text-gray-600">Analysis completed successfully.</p>
+            </div>
+          ) : (
+            !isAnalyzing && (
+              <p className="text-gray-700 mb-4">
+                Is this image suitable for leaf analysis? The image should clearly show the entire leaf and calibration object.
+              </p>
+            )
+          )}
+          
+          <DialogFooter className="sm:justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsImageDialogOpen(false)}
+              disabled={isAnalyzing}
+            >
+              {analysisResult ? "Close" : "Cancel"}
+            </Button>
+            
+            {!analysisResult && !isAnalyzing && (
+              <Button
+                type="button"
+                className="bg-green-700 hover:bg-green-800"
+                onClick={handleAnalyzeLeaf}
+              >
+                Proceed with Analysis
+              </Button>
+            )}
+            
+            {analysisResult && (
+              <Button
+                type="button"
+                className="bg-green-700 hover:bg-green-800"
+                onClick={resetAnalysis}
+              >
+                Analyze New Leaf
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default Home;
