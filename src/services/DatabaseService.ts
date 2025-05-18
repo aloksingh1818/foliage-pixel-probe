@@ -16,7 +16,7 @@ class DatabaseService {
     try {
       // Create database connection
       const ret = await this.sqlite.checkConnectionsConsistency();
-      const isConn = await this.sqlite.isConnection("foliage_db");
+      const isConn = await this.sqlite.isConnection("foliage_db", false);
 
       if (ret.result && isConn.result) {
         this.db = await this.sqlite.retrieveConnection("foliage_db", false);
