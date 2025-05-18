@@ -28,9 +28,11 @@ export class DatabaseService {
     }
 
     try {
-      // This method requires a string argument for platform
+      // The checkConnectionsConsistency method requires a string argument
       await this.sqlite.checkConnectionsConsistency("transaction");
-      this.db = await this.sqlite.createConnection('leaf_measurements', false, 'no-encryption', 1, false);
+      
+      // The createConnection method should not have the 5th argument based on the error
+      this.db = await this.sqlite.createConnection('leaf_measurements', false, 'no-encryption', 1);
       
       if (this.db) {
         await this.db.open();
